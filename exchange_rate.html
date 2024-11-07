@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汇率展示</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 { 
+            color: #2c7072;
+            font-size: 40px;
+        }
+        #time { font-size: 1.2em; color: #888; margin-bottom: 20px; }
+        .input-container {
+            width: 40%;
+            margin: 10px auto;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        input, button {
+            text-align: center; 
+            padding: 10px;
+            font-size: 1.2em;
+            margin: 0 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #2c7072;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background-color: #1a4f50; }
+        table {
+            width: 50%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        th, td { padding: 15px; text-align: center; }
+        th { background-color: #2c7072; color: white; }
+        td:nth-child(odd) { background-color: #f1f1f1; }
+    </style>
+</head>
+<body>
+
+    <h1>汇率展示</h1>
+    <div id="time">加载中...</div>
+
+    <div class="input-container">
+        <label for="default-value">默认值：</label>
+        <input type="number" id="default-value" value="100" min="0" />
+        <button onclick="convertCurrency()">转换</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>货币</th>
+                <th>输入值</th>
+                <th>兑换人民币</th>
+                <th>当前汇率</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>港币 (HKD)</td><td id="hkd-input">100</td><td id="hkd-conversion">加载中...</td><td id="hkd-rate">加载中...</td></tr>
+            <tr><td>澳门币 (MOP)</td><td id="mop-input">100</td><td id="mop-conversion">加载中...</td><td id="mop-rate">加载中...</td></tr>
+            <tr><td>美元 (USD)</td><td id="usd-input">100</td><td id="usd-conversion">加载中...</td><td id="usd-rate">加载中...</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        const apiKey = 'fa49987f619396669e3a2cb8';
+        const apiUrl = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`;
+
+        async function fetchExchangeRates() {
+            const res = await fetch(apiUrl);
+            const data = await res.json();
+            if (data.result !== 'success') return console.error('无法获取汇率数据');
+            
+            const rates = {
+                HKD: data.conversion_rates.CNY / data.conversion_rates.HKD,
+                MOP: data.conversion_rates.CNY / data.conversion_rates.MOP,
+                USD: data.conversion_rates.CNY
+            };
+            
+            Object.keys(rates).forEach(currency => {
+                document.getElementById(`${currency.toLowerCase()}-rate`).textContent = rates[currency].toFixed(4);
+            });
+            convertCurrency(); // 初始化时转换
+        }
+
+        function convertCurrency() {
+            const defaultValue = parseFloat(document.getElementById('default-value').value);
+            if (isNaN(defaultValue) || defaultValue < 0) return alert('请输入有效的非负数');
+            
+            // 获取当前中国时区时间
+            const time = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+            document.getElementById('time').textContent = `数据更新时间：${time}`;
+
+            ['hkd', 'mop', 'usd'].forEach(currency => {
+                const rate = parseFloat(document.getElementById(`${currency}-rate`).textContent);
+                const conversion = (defaultValue * rate).toFixed(2);
+                document.getElementById(`${currency}-conversion`).textContent = `${conversion} 人民币`;
+                document.getElementById(`${currency}-input`).textContent = `${defaultValue} ${currency.toUpperCase()}`;
+            });
+        }
+
+        fetchExchangeRates();
+        
+        document.getElementById('default-value').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') convertCurrency(); // 回车触发转换
+        });
+    </script>
+
+</body>
+</html>
